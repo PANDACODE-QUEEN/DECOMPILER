@@ -11,7 +11,60 @@ bool is_valid_size(size_t num) {
             return false;
     }
 }
+bool read_offset_file(const char* filename, size_t* out_size,size_t num_byets,size_t offset,unsigned char **buffer) {
+    if(NULL == filename || NULL == out_size || NULL == buffer){
+        return false;
+    }
+    *out_size = 0;
+    *buffer = NULL;
+    FILE *file = fopen(filename, "rb");
+    if (!file) return false;
 
+    // Jump to the end of the file
+    if(fseek(file, 0, SEEK_END) !=0){
+        fclose(file);
+        return false;
+    }
+    // Get the current byte offset (the file size)
+    long file_size = ftell(file);
+    if(ILLEGAL_FILE_SIZE == file_size){
+        fclose(file);
+        return false;
+    }
+    // Rewind back to the beginning
+    if (fseek(file, 0, SEEK_SET) != 0){
+        fclose(file);
+        return false;
+    }
+
+    if (file_size <= 0) {
+        fclose(file);
+        return false;
+    }
+
+    *buffer = malloc(num_byets);
+    if (!*(buffer)) {
+        fclose(file);
+        return false;
+    }
+
+    // Read the entire file in one go
+    if (fseek(file, 0, offset) != 0){
+        fclose(file);
+        return false;
+    }
+
+    size_t bytes_read = fread(*buffer, 1, num_byets, file);
+    fclose(file);
+    if(bytes_read !=  num_byets){
+        free(*buffer);
+        *buffer=NULL;
+        return false;
+    }
+
+    *out_size = bytes_read;
+    return true;
+}
 bool read_exact_size(const char* filename, size_t* out_size,unsigned char **buffer) {
     if(NULL == filename || NULL == out_size || NULL == buffer){
         return false;
